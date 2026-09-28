@@ -1,0 +1,39 @@
+# Requirements for LLaMA 3.1 experiments (merge_llama_3_1_vision_to_audio, merge_llama_3_1_vision_to_video)
+# Tested with Python 3.10, CUDA 12.8
+# Install: pip install -r requirements_llama.txt
+
+# Core
+torch>=2.7.0
+torchaudio>=2.7.0
+torchvision>=0.22.0
+
+# Model frameworks
+transformers>=4.55.0
+peft>=0.18.0
+safetensors>=0.7.0
+
+# LLaVA-NeXT (vision/video donor & video recipient)
+# Install via: pip install git+https://github.com/LLaVA-VL/LLaVA-NeXT.git
+# llava  # installed from source
+
+# Ultravox (audio recipient)
+# Loaded via transformers.pipeline with trust_remote_code=True
+
+# Data processing
+numpy>=1.26.0
+scipy>=1.15.0
+pillow>=10.4.0
+decord>=0.6.0
+librosa>=0.10.0
+soundfile>=0.13.0
+tqdm>=4.67.0
+
+# Evaluation
+datasets>=2.21.0
+accelerate>=0.30.0
+
+# Utilities
+sentencepiece>=0.1.99
+tokenizers>=0.21.0
+einops>=0.6.1
+timm>=1.0.0

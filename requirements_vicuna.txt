@@ -1,0 +1,40 @@
+# Requirements for Vicuna experiments (merge_vicuna_vision_to_audio, merge_vicuna_vision_to_video)
+# Tested with Python 3.10, CUDA 11.7
+# Install: pip install -r requirements_vicuna.txt
+
+# Core
+torch>=2.0.1
+torchaudio>=2.0.2
+torchvision>=0.15.2
+
+# Model frameworks
+transformers>=4.45.0,<4.50.0
+peft>=0.4.0,<1.0.0
+safetensors>=0.7.0
+
+# ModelCompose (Vicuna multimodal framework)
+# Install via: https://github.com/WalkerWorldPeace/MLLMerging
+# Follow the README there to install modelcompose and download checkpoints
+
+# Data processing
+numpy>=1.26.0
+scipy>=1.15.0
+pillow>=10.4.0
+decord>=0.6.0
+librosa>=0.10.0
+soundfile>=0.13.0
+tqdm>=4.67.0
+
+# Video processing
+pytorchvideo>=0.1.5
+
+# Evaluation
+datasets>=2.21.0
+
+# Utilities
+sentencepiece>=0.1.99
+tokenizers>=0.20.0
+einops>=0.6.1
+timm>=0.6.13
+deepspeed>=0.12.0
+flash_attn>=2.8.0
