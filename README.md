@@ -2,7 +2,11 @@
 
 # Strong Helps Weak: Directional Cross-Modal Alignment Transfer in Multi-modal LLMs
 
-### $\color{#b31b1b}{\textsf{NeurIPS 2026 (Spotlight)}}$
+<a href="#citation">
+  <img src="https://img.shields.io/badge/NeurIPS%202026-%E2%9C%A6%20SPOTLIGHT-b31b1b?style=for-the-badge&labelColor=12121c" alt="NeurIPS 2026 Spotlight" height="34">
+</a>
+
+<br>
 
 **Hoigi Seo**<sup>1\*</sup> &nbsp;&nbsp; **Byung Hyun Lee**<sup>1\*</sup> &nbsp;&nbsp; **Minjun Kim**<sup>1\*</sup> &nbsp;&nbsp; **Dohyun Mah**<sup>1</sup> &nbsp;&nbsp; **Jongho Lee**<sup>2</sup> &nbsp;&nbsp; **Se Young Chun**<sup>1,2†</sup>
 
@@ -10,10 +14,12 @@
 
 <sub>\* Equal contribution &nbsp;&nbsp; † Corresponding author</sub>
 
-[![NeurIPS](https://img.shields.io/badge/NeurIPS%202026-Spotlight-b31b1b.svg)](#citation)
-[![Python](https://img.shields.io/badge/Python-3.10-blue.svg)](https://www.python.org/)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.0%20%7C%202.7-ee4c2c.svg)](https://pytorch.org/)
-[![Training](https://img.shields.io/badge/Training-Free-brightgreen.svg)](#method)
+<br>
+
+[![Python](https://img.shields.io/badge/Python-3.10-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0%20%7C%202.7-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org/)
+[![Training Free](https://img.shields.io/badge/Training-Free-2EA043)](#method)
+[![Closed Form](https://img.shields.io/badge/Update-Closed--Form-8957E5)](#method)
 
 </div>
 
@@ -105,10 +111,6 @@ calibration activations, merges layers 0→31, saves the checkpoint, and evaluat
 | `merge_vicuna_vision_to_video` | vision → video | Video-MME, 1800 (seed 77) | ~25 min |
 | `merge_llama_3_1_vision_to_audio` | vision → audio | MMAU, 1000 | ~28 min |
 | `merge_llama_3_1_vision_to_video` | vision → video | Video-MME, 900 (seed 77) | ~35 min |
-
-Hyperparameters sit at the top of `run_merge.sh` and ship at the paper's values — $\eta{=}10^5$,
-$k{=}128$, $\beta{=}0.30$ for Vicuna and $\eta{=}10^6$, $k{=}256$, $\beta{=}0.95$ for LLaMA 3.1, with
-$\alpha$ auto-scheduled and all 32 layers merged.
 
 For detached runs keep `PYTHONBREAKPOINT=0` (the scripts export it) so nothing drops into `pdb`. When
 running two Vicuna settings at once, give each its own cache or they will wipe each other's:
