@@ -1,12 +1,6 @@
 <div align="center">
 
-# Strong Helps Weak: Directional Cross-Modal Alignment Transfer in Multi-modal LLMs
-
-<a href="#citation">
-  <img src="https://img.shields.io/badge/NeurIPS%202026-%E2%9C%A6%20SPOTLIGHT-b31b1b?style=for-the-badge&labelColor=12121c" alt="NeurIPS 2026 Spotlight" height="34">
-</a>
-
-<br>
+# Strong Helps Weak: Directional Cross-Modal Alignment Transfer in Multi-modal LLMs<br>(NeurIPS 2026 Spotlight)
 
 **Hoigi Seo**<sup>1\*</sup> &nbsp;&nbsp; **Byung Hyun Lee**<sup>1\*</sup> &nbsp;&nbsp; **Minjun Kim**<sup>1\*</sup> &nbsp;&nbsp; **Dohyun Mah**<sup>1</sup> &nbsp;&nbsp; **Jongho Lee**<sup>2</sup> &nbsp;&nbsp; **Se Young Chun**<sup>1,2†</sup>
 
@@ -14,12 +8,10 @@
 
 <sub>\* Equal contribution &nbsp;&nbsp; † Corresponding author</sub>
 
-<br>
-
-[![Python](https://img.shields.io/badge/Python-3.10-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.0%20%7C%202.7-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org/)
-[![Training Free](https://img.shields.io/badge/Training-Free-2EA043)](#method)
-[![Closed Form](https://img.shields.io/badge/Update-Closed--Form-8957E5)](#method)
+[![NeurIPS](https://img.shields.io/badge/NeurIPS%202026-Spotlight-b31b1b?style=flat-square)](#citation)
+[![Python](https://img.shields.io/badge/Python-3.10-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0%20%7C%202.7-EE4C2C?style=flat-square&logo=pytorch&logoColor=white)](https://pytorch.org/)
+[![Training Free](https://img.shields.io/badge/Training-Free-2EA043?style=flat-square)](#method)
 
 </div>
 
