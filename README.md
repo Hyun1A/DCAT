@@ -42,23 +42,12 @@ shows it correlates strongly with downstream accuracy, most clearly from the mid
 
 DCAT optimizes that quantity directly. Per linear projection it solves
 
-$$\min_{\tau}\;\; \underbrace{\lVert X_{\text{mod}}(\theta_0+\tau)-T_\alpha\rVert_F^2}_{\text{self-alignment}}\;+\;\eta\cdot\underbrace{\Big(\beta\lVert X_{\text{text}}(\tau-\tau_r)\rVert_F^2+(1-\beta)\lVert X_{\text{text}}(\tau-\tau_d)\rVert_F^2\Big)}_{\text{cross-modal alignment}}$$
+$$\min_{\tau} \underbrace{\lVert X_{\text{mod}}(\theta_0+\tau)-T_\alpha\rVert_F^2}_{\text{self-alignment}} + \eta\cdot\underbrace{\Big(\beta\lVert X_{\text{text}}(\tau-\tau_r)\rVert_F^2+(1-\beta)\lVert X_{\text{text}}(\tau-\tau_d)\rVert_F^2\Big)}_{\text{cross-modal alignment}}$$
 
 where $\tau_r,\tau_d$ are the recipient and donor task vectors and $T_\alpha$ is a norm-preserving
 target built inside the text subspace with a rebalanced spectrum. The first term raises SEO and SD;
 the second anchors the update between recipient and donor on text inputs, which is how the donor's
 alignment actually gets transferred.
-
-The objective is quadratic, so it reduces to one SPD system per projection:
-
-$$\tau\big(G_{\text{mod}}+\eta G_{\text{text}}\big)=T_\alpha X_{\text{mod}}^\top-\theta_0 G_{\text{mod}}+\eta\big(\beta\tau_r+(1-\beta)\tau_d\big)G_{\text{text}}$$
-
-$\alpha$ and $\beta$ are scheduled per projection from SEO/SD and task-vector interference. Layers are
-merged **progressively** (0 → 31), re-propagating calibration activations after each layer, with
-`q,k,v` / `o` / `gate,up` / `down` solved as dependency groups.
-
-> Everything above lives in `compute_tau_m_mi_surrogate()` in each `mi_surrogate_merge_eval.py`.
-> Only the LLM's linear projections are touched — never the modality encoder or projector.
 
 ---
 
