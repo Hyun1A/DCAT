@@ -11,7 +11,6 @@
 [![NeurIPS](https://img.shields.io/badge/NeurIPS%202026-Spotlight-b31b1b?style=flat-square)](#citation)
 [![Python](https://img.shields.io/badge/Python-3.10-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0%20%7C%202.7-EE4C2C?style=flat-square&logo=pytorch&logoColor=white)](https://pytorch.org/)
-[![Training Free](https://img.shields.io/badge/Training-Free-2EA043?style=flat-square)](#method)
 
 </div>
 
