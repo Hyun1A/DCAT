@@ -2,7 +2,7 @@
 
 # Strong Helps Weak: Directional Cross-Modal Alignment Transfer in Multi-modal LLMs<br>(NeurIPS 2026 Spotlight)
 
-**Hoigi Seo**<sup>1\*</sup> &nbsp;&nbsp; **Byung Hyun Lee**<sup>1\*</sup> &nbsp;&nbsp; **Minjun Kim**<sup>1\*</sup> &nbsp;&nbsp; **Dohyun Mah**<sup>1</sup> &nbsp;&nbsp; **Jongho Lee**<sup>2</sup> &nbsp;&nbsp; **Se Young Chun**<sup>1,2†</sup>
+**Hoigi Seo**<sup>1\*</sup> &nbsp;&nbsp; **Byung Hyun Lee**<sup>1\*</sup> &nbsp;&nbsp; **Minjun Kim**<sup>1\*</sup> &nbsp;&nbsp; **Dohyun Mah**<sup>1</sup> &nbsp;&nbsp; **Jongho Lee**<sup>1</sup> &nbsp;&nbsp; **Se Young Chun**<sup>1,2†</sup>
 
 <sup>1</sup>Dept. of ECE &nbsp;&nbsp; <sup>2</sup>IPAI & INMC, Seoul National University, Republic of Korea
 
