@@ -2,11 +2,14 @@
 
 # Strong Helps Weak: Directional Cross-Modal Alignment Transfer in Multi-modal LLMs<br>(NeurIPS 2026 Spotlight)
 
-**Hoigi Seo**<sup>1\*</sup> &nbsp;&nbsp; **Byung Hyun Lee**<sup>1\*</sup> &nbsp;&nbsp; **Minjun Kim**<sup>1\*</sup> &nbsp;&nbsp; **Dohyun Mah**<sup>1</sup> &nbsp;&nbsp; **Jongho Lee**<sup>2</sup> &nbsp;&nbsp; **Se Young Chun**<sup>1,2†</sup>
+**Hoigi Seo**<sup>1\*</sup> &nbsp;&nbsp; **Byung Hyun Lee**<sup>1\*</sup> &nbsp;&nbsp; **Minjun Kim**<sup>1\*</sup><br>
+**Dohyun Mah**<sup>1</sup> &nbsp;&nbsp; **Jongho Lee**<sup>1,2</sup> &nbsp;&nbsp; **Se Young Chun**<sup>1,2,3†</sup>
 
-<sup>1</sup> Department of ECE &nbsp;&nbsp;&nbsp; <sup>2</sup> IPAI & INMC · Seoul National University
+<sup>1</sup> Dept. of ECE &nbsp;&nbsp; <sup>2</sup> INMC &nbsp;&nbsp; <sup>3</sup> IPAI, Seoul National University, Republic of Korea
 
 <sub>\* Equal contribution &nbsp;&nbsp; † Corresponding author</sub>
+
+`{seohoiki3215, ldlqudgus756, minjoony, dohyun0505,`<br>`jonghoyi, sychun}@snu.ac.kr`
 
 [![NeurIPS](https://img.shields.io/badge/NeurIPS%202026-Spotlight-b31b1b?style=flat-square)](#citation)
 [![Python](https://img.shields.io/badge/Python-3.10-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
