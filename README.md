@@ -118,7 +118,7 @@ shows it correlates strongly with downstream accuracy, most clearly from the mid
 
 DCAT optimizes that quantity directly. Per linear projection it solves
 
-$$\min_{\tau} \underbrace{\lVert X_{\text{mod}}(\theta_0+\tau)-T_\alpha\rVert_F^2}_{\text{self-alignment}} + \eta\cdot\underbrace{\Big(\beta\lVert X_{\text{text}}(\tau-\tau_r)\rVert_F^2+(1-\beta)\lVert X_{\text{text}}(\tau-\tau_d)\rVert_F^2\Big)}_{\text{cross-modal alignment}} + \eta_2\cdot\underbrace{\sum_{i\in\{r,d\}}\frac{\lVert(\tau-\tau_i)\,\tau_i^{\top}\rVert_F^2}{\lVert\tau_i\rVert_F^2}}_{\text{weight-space anchor (optional)}}$$
+$$\min_{\tau} \underbrace{\lVert X_{\text{mod}}(\theta_0+\tau)-T_\alpha\rVert_F^2}_{\text{self-alignment}} + \eta\cdot\underbrace{\Big(\beta\lVert X_{\text{text}}(\tau-\tau_r)\rVert_F^2+(1-\beta)\lVert X_{\text{text}}(\tau-\tau_d)\rVert_F^2\Big)}_{\text{cross-modal alignment}}$$
 
 where $\tau_r,\tau_d$ are the recipient and donor task vectors and $T_\alpha$ is a norm-preserving
 target built inside the text subspace with a rebalanced spectrum. The first term raises SEO and SD;
@@ -128,13 +128,6 @@ update inside the row spaces of the two task vectors; it is a small, closed-form
 that helps on the video recipients and on Vicuna audio. All three terms are quadratic in $\tau$, so
 each projection is still solved with one SPD linear solve. The target exponent $\alpha$ is scheduled
 per projection from SEO/SD (`--alpha-sched ratio` or `balanced`, set per setting in each script).
-
-**Calibration prompts.** $X_{\text{mod}}$ and $X_{\text{text}}$ are collected from 256 AVQA samples;
-no evaluation data are used. With `--avqa-prompt evalfmt` (the default) each AVQA question and
-its answer choices are written in the same prompt format the recipient sees at evaluation time — the
-same instruction wording and, for the LLaMA models, the same chat template — so the text activations
-that define the text subspace and the anchor term come from the input format the model is actually
-used with. `--avqa-prompt native` keeps AVQA's original template.
 
 ---
 
