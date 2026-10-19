@@ -63,15 +63,26 @@ def build_prompt(dcat, setting, question, choices):
 
 
 def load_ultravox(dcat, model_dir, text_model):
+    import json
     import torch
     import transformers
     from safetensors.torch import load_file
-    config = transformers.AutoConfig.from_pretrained(model_dir, trust_remote_code=True)
+    src = model_dir
     if text_model:
-        config.text_model_id = text_model
-    pipe = transformers.pipeline(model=model_dir, config=config, trust_remote_code=True,
-                                 device="cuda", torch_dtype=torch.bfloat16)
-    for shard in sorted(glob.glob(os.path.join(model_dir, "model-*.safetensors"))):
+        src = os.path.join(CACHE_ROOT, "models", os.path.basename(model_dir.rstrip("/")) + "_textmodel")
+        os.makedirs(src, exist_ok=True)
+        for name in os.listdir(model_dir):
+            dst = os.path.join(src, name)
+            if name == "config.json" or name.startswith(".") or os.path.lexists(dst):
+                continue
+            os.symlink(os.path.realpath(os.path.join(model_dir, name)), dst)
+        with open(os.path.join(model_dir, "config.json")) as f:
+            config = json.load(f)
+        config["text_model_id"] = text_model
+        with open(os.path.join(src, "config.json"), "w") as f:
+            json.dump(config, f, indent=2)
+    pipe = transformers.pipeline(model=src, trust_remote_code=True, device="cuda", torch_dtype=torch.bfloat16)
+    for shard in sorted(glob.glob(os.path.join(src, "model-*.safetensors"))):
         pipe.model.load_state_dict(load_file(shard), strict=False)
     return pipe
 

@@ -1545,7 +1545,7 @@ def main():
     logging.info(f"\n  Saving full merged model to {args.output_dir} ...")
     os.makedirs(args.output_dir, exist_ok=True)
 
-    model_state = model.state_dict()
+    model_state = OrderedDict((k, v) for k, v in model.state_dict().items() if not k.startswith("model."))
     from safetensors.torch import save_file as save_safetensors
     shard_size_bytes = 5 * 1024 * 1024 * 1024
     shards = []
