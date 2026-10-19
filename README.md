@@ -123,11 +123,7 @@ $$\min_{\tau} \underbrace{\lVert X_{\text{mod}}(\theta_0+\tau)-T_\alpha\rVert_F^
 where $\tau_r,\tau_d$ are the recipient and donor task vectors and $T_\alpha$ is a norm-preserving
 target built inside the text subspace with a rebalanced spectrum. The first term raises SEO and SD;
 the second anchors the update between recipient and donor on text inputs, which is how the donor's
-alignment actually gets transferred. The third term (`--eta2`, set per setting in each script) additionally keeps the
-update inside the row spaces of the two task vectors; it is a small, closed-form-compatible addition
-that helps on the video recipients and on Vicuna audio. All three terms are quadratic in $\tau$, so
-each projection is still solved with one SPD linear solve. The target exponent $\alpha$ is scheduled
-per projection from SEO/SD (`--alpha-sched ratio` or `balanced`, set per setting in each script).
+alignment actually gets transferred.
 
 ---
 
