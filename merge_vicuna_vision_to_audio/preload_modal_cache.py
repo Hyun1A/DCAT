@@ -11,14 +11,14 @@ from tqdm import tqdm
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SRC_DIR = os.path.dirname(SCRIPT_DIR)
-MODELCOMPOSE_DIR = os.path.join(SRC_DIR, "MLLMerging", "ModelCompose")
+MODELCOMPOSE_DIR = os.path.realpath(os.path.join(SRC_DIR, "third_party", "ModelCompose"))
 if MODELCOMPOSE_DIR not in sys.path:
     sys.path.insert(0, MODELCOMPOSE_DIR)
 
 DEFAULT_MMAU_ROOT = "/dev/shm/mmau"
 DEFAULT_VIDEOMME_ROOT = "/dev/shm/videomme"
 DEFAULT_CACHE_DIR = "/dev/shm/modal_cache"
-DEFAULT_MODEL_BASE = "xxx/xxx/vicuna_models/checkpoints/vicuna-7b-v1.5"
+DEFAULT_MODEL_BASE = os.path.join(os.environ.get("ROOT", "xxx/xxx"), "vicuna_models/checkpoints/vicuna-7b-v1.5")
 
 
 def load_processors(ckpt_path, model_base):

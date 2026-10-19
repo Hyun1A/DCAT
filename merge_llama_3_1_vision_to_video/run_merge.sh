@@ -5,7 +5,9 @@ DIR=$(cd "$(dirname "$0")"; pwd)
 cd "$DIR"
 mkdir -p logs results logs/merged_ckpt
 
-CKPT=xxx/xxx/llama_models/checkpoints
+ROOT="${ROOT:-xxx/xxx}"
+export ROOT
+CKPT=$ROOT/llama_models/checkpoints
 BASE=$CKPT/llama3.1-8b-instruct
 VIDEO=$CKPT/llava-video-llama-3.1-8b
 VISION=$CKPT/llava-llama3.1-8b
@@ -15,7 +17,7 @@ export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
 unset PYTHONSTARTUP
 export PYTHONBREAKPOINT=0
 
-VIDEOMME_SRC="${VIDEOMME_SRC:-xxx/xxx/data/videomme}"
+VIDEOMME_SRC="${VIDEOMME_SRC:-$ROOT/data/videomme}"
 VIDEOMME_DST="${VIDEOMME_DST:-/dev/shm/videomme}"
 
 if [ ! -f "$VIDEOMME_DST/videomme_test_flat.json" ]; then
@@ -28,7 +30,7 @@ if [ ! -f "$VIDEOMME_DST/videomme_test_flat.json" ]; then
   rsync -a "$VIDEOMME_SRC/" "$VIDEOMME_DST/"
 fi
 
-AVQA_SRC="${AVQA_SRC:-xxx/xxx/data/AVQA_MUSIC-AVQA_supp/data}"
+AVQA_SRC="${AVQA_SRC:-$ROOT/data/AVQA_MUSIC-AVQA_supp/data}"
 AVQA_DST="${AVQA_DST:-/dev/shm/avqa_data/data}"
 if [ ! -f "$AVQA_DST/test/avqa-test_mm_video.json" ]; then
   if [ ! -f "$AVQA_SRC/test/avqa-test_mm_video.json" ]; then
@@ -69,9 +71,9 @@ else
   VERBOSE_FLAG=""
 fi
 
-tag="DCAT_llama_eta${ETA}_k${TOP_P}_b${BETA}_L${START_LAYER}-${END_LAYER}_${PROJ_GROUPS}"
+tag="${TAG:-llava-video-llama-3.1-8b-dcat}"
 
-echo "[launch] GPU=$gpu  η=$ETA  k=$TOP_P  α=$ALPHA (auto)  β=$BETA (fixed)  tag=$tag"
+echo "[launch] GPU=$gpu  tag=$tag"
 CUDA_VISIBLE_DEVICES=$gpu conda run --no-capture-output -n "$CONDA_ENV" \
   python mi_surrogate_merge_eval.py \
     --model-base "$BASE" --recipient-model-path "$VIDEO" --donor-model-paths "$VISION" \

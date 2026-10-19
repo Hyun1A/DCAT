@@ -20,3 +20,6 @@ experiment_results.csv
 .vscode/
 .idea/
 *.swp
+
+
+third_party/LLaVA-NeXT/

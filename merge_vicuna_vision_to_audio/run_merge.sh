@@ -5,7 +5,10 @@ DIR=$(cd "$(dirname "$0")"; pwd)
 cd "$DIR"
 mkdir -p logs results logs/merged_ckpt
 
-CKPT=xxx/xxx/vicuna_models/checkpoints
+ROOT="${ROOT:-xxx/xxx}"
+export ROOT
+export MODELCOMPOSE_ENCODER_DIR="${MODELCOMPOSE_ENCODER_DIR:-$ROOT/vicuna_models/multimodal_encoder}"
+CKPT=$ROOT/vicuna_models/checkpoints
 BASE=$CKPT/vicuna-7b-v1.5
 AUDIO=$CKPT/multimodal-vicuna-7b-v1.5-audio-naivemc
 VIDEO=$CKPT/multimodal-vicuna-7b-v1.5-video-naivemc
@@ -47,7 +50,7 @@ fi
 
 
 MODAL_CACHE_DIR="${MODAL_CACHE_DIR:-/dev/shm/modal_cache}"
-MMAU_SRC="${MMAU_SRC:-xxx/xxx/data/mmau}"
+MMAU_SRC="${MMAU_SRC:-$ROOT/data/mmau}"
 MMAU_DST="${MMAU_DST:-/dev/shm/mmau}"
 
 if [ ! -f "$MMAU_DST/test_mini.json" ]; then
@@ -60,7 +63,7 @@ if [ ! -f "$MMAU_DST/test_mini.json" ]; then
   rsync -a "$MMAU_SRC/" "$MMAU_DST/"
 fi
 
-AVQA_SRC="${AVQA_SRC:-xxx/xxx/data/AVQA_MUSIC-AVQA_supp/data}"
+AVQA_SRC="${AVQA_SRC:-$ROOT/data/AVQA_MUSIC-AVQA_supp/data}"
 AVQA_DST="${AVQA_DST:-/dev/shm/avqa_data/data}"
 if [ ! -f "$AVQA_DST/test/avqa-test_mm_video.json" ]; then
   if [ ! -f "$AVQA_SRC/test/avqa-test_mm_video.json" ]; then
@@ -97,9 +100,9 @@ else
 fi
 
 
-tag="DCAT_eta${ETA}_k${TOP_P}_b${BETA}_L${START_LAYER}-${END_LAYER}_${PROJ_GROUPS}"
+tag="${TAG:-multimodal-vicuna-7b-v1.5-audio-dcat}"
 
-echo "[launch] GPU=$gpu  η=$ETA  k=$TOP_P  α=$ALPHA (auto)  β=$BETA (fixed)  tag=$tag"
+echo "[launch] GPU=$gpu  tag=$tag"
 CUDA_VISIBLE_DEVICES=$gpu conda run --no-capture-output -n "$CONDA_ENV" \
   python mi_surrogate_merge_eval.py \
     --model-base "$BASE" --recipient-model-path "$AUDIO" --donor-model-paths "$VISION" \

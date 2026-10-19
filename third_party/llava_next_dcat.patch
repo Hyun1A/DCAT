@@ -1,0 +1,107 @@
+diff --git a/llava/model/multimodal_encoder/siglip_encoder.py b/llava/model/multimodal_encoder/siglip_encoder.py
+index f1e101a..624bdd5 100755
+--- a/llava/model/multimodal_encoder/siglip_encoder.py
++++ b/llava/model/multimodal_encoder/siglip_encoder.py
+@@ -567,8 +567,9 @@ def load_model(self, device_map=None):
+ 
+         self.vision_tower = SigLipVisionModel.from_pretrained(self.vision_tower_name, device_map=device_map)
+ 
+-        del self.vision_tower.vision_model.encoder.layers[-1:]
+-        self.vision_tower.vision_model.head = nn.Identity()
++        # Removed to ensure parity with LLaMA-Unified checkpoints which include this final layer
++        # del self.vision_tower.vision_model.encoder.layers[-1:]
++        # self.vision_tower.vision_model.head = nn.Identity()
+         self.vision_tower.requires_grad_(False)
+ 
+         self.is_loaded = True
+diff --git a/llava/model/multimodal_projector/builder.py b/llava/model/multimodal_projector/builder.py
+index 3122a0c..ad38396 100755
+--- a/llava/model/multimodal_projector/builder.py
++++ b/llava/model/multimodal_projector/builder.py
+@@ -62,4 +62,19 @@ def build_vision_projector(config, delay_load=False, **kwargs):
+     if projector_type == "identity":
+         return IdentityMap()
+ 
++    if projector_type == "aapool_mlp":
++        # Adaptive Average Pooling + MLP projector used by LLaVA-Video
++        # Checkpoint keys: mm_projector.mlp_projector.{0,2}.{weight,bias}
++        class AAPoolMLP(nn.Module):
++            def __init__(self, mm_hidden_size, hidden_size):
++                super().__init__()
++                self.mlp_projector = nn.Sequential(
++                    nn.Linear(mm_hidden_size, hidden_size),
++                    nn.GELU(),
++                    nn.Linear(hidden_size, hidden_size),
++                )
++            def forward(self, x, *args, **kwargs):
++                return self.mlp_projector(x)
++        return AAPoolMLP(config.mm_hidden_size, config.hidden_size)
++
+     raise ValueError(f"Unknown projector type: {projector_type}")
+diff --git a/llava/model/multimodal_resampler/qformer.py b/llava/model/multimodal_resampler/qformer.py
+index b86754c..9764083 100755
+--- a/llava/model/multimodal_resampler/qformer.py
++++ b/llava/model/multimodal_resampler/qformer.py
+@@ -38,10 +38,59 @@
+ )
+ from transformers.modeling_utils import (
+     PreTrainedModel,
+-    apply_chunking_to_forward,
+-    find_pruneable_heads_and_indices,
+-    prune_linear_layer,
+ )
++try:
++    from transformers.modeling_utils import find_pruneable_heads_and_indices
++except ImportError:
++    def find_pruneable_heads_and_indices(heads, n_heads, head_size, already_pruned_heads):
++        mask = torch.ones(n_heads, head_size)
++        heads = set(heads) - already_pruned_heads
++        for head in heads:
++            head = head - sum(1 if h < head else 0 for h in already_pruned_heads)
++            mask[head] = 0
++        mask = mask.view(-1).contiguous().eq(1)
++        index = torch.arange(len(mask))[mask].long()
++        return heads, index
++
++try:
++    from transformers.modeling_utils import prune_linear_layer
++except ImportError:
++    def prune_linear_layer(layer, index, dim=0):
++        index = index.to(layer.weight.device)
++        W = layer.weight.index_select(dim, index).clone().detach()
++        if layer.bias is not None:
++            if dim == 1:
++                b = layer.bias.clone().detach()
++            else:
++                b = layer.bias[index].clone().detach()
++        new_size = list(layer.weight.size())
++        new_size[dim] = len(index)
++        new_layer = nn.Linear(new_size[1], new_size[0], bias=layer.bias is not None).to(layer.weight.device)
++        new_layer.weight.requires_grad = False
++        new_layer.weight.copy_(W.contiguous())
++        new_layer.weight.requires_grad = True
++        if layer.bias is not None:
++            new_layer.bias.requires_grad = False
++            new_layer.bias.copy_(b.contiguous())
++            new_layer.bias.requires_grad = True
++        return new_layer
++
++try:
++    from transformers.modeling_utils import apply_chunking_to_forward
++except ImportError:
++    def apply_chunking_to_forward(forward_fn, chunk_size, chunk_dim, *input_tensors):
++        if chunk_size > 0:
++            tensor_shape = input_tensors[0].shape[chunk_dim]
++            if tensor_shape % chunk_size != 0:
++                raise ValueError(
++                    f"dimension {chunk_dim} of input tensor ({tensor_shape}) "
++                    f"is not divisible by chunk_size ({chunk_size})"
++                )
++            num_chunks = tensor_shape // chunk_size
++            input_chunks = tuple(t.chunk(num_chunks, dim=chunk_dim) for t in input_tensors)
++            output_chunks = tuple(forward_fn(*ic) for ic in zip(*input_chunks))
++            return torch.cat(output_chunks, dim=chunk_dim)
++        return forward_fn(*input_tensors)
+ from transformers.utils import logging
+ from transformers.models.bert.configuration_bert import BertConfig
+ 

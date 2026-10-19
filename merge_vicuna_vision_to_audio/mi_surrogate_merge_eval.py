@@ -16,13 +16,13 @@ from tqdm import tqdm
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SRC_DIR = os.path.dirname(SCRIPT_DIR)
-MODELCOMPOSE_DIR = os.path.join(SRC_DIR, "MLLMerging", "ModelCompose")
+MODELCOMPOSE_DIR = os.path.realpath(os.path.join(SRC_DIR, "third_party", "ModelCompose"))
 if MODELCOMPOSE_DIR not in sys.path:
     sys.path.insert(0, MODELCOMPOSE_DIR)
 
 DATA_DIR_MMAU = "/dev/shm/mmau"
 AVQA_DATA_ROOT = "/dev/shm/avqa_data/data"
-AVQA_VIDEO_CONSTRUCTED_DIR = "xxx/xxx/data/AVQA/constructed_avqa/videos/test"
+AVQA_VIDEO_CONSTRUCTED_DIR = os.path.join(os.environ.get("ROOT", "xxx/xxx"), "data/AVQA/constructed_avqa/videos/test")
 VIDEOMME_DATA = "/dev/shm/videomme"
 VIDEOMME_VIDEO_DIR = os.path.join(VIDEOMME_DATA, "videos", "data")
 VIDEOMME_FLAT_JSON = os.path.join(VIDEOMME_DATA, "videomme_test_flat.json")
@@ -77,7 +77,7 @@ def resolve_proj_paths(proj_groups_str):
     return groups, paths
 
 
-MODAL_CACHE_DIR = "/dev/shm/modal_cache"
+MODAL_CACHE_DIR = os.environ.get("MODAL_CACHE_DIR", "/dev/shm/modal_cache")
 
 
 def _load_shared_modal_cache():
@@ -320,7 +320,28 @@ def load_mmau_audio_data(data_root, variant="test-mini", testset="full", num_sam
     return valid_data
 
 
-def load_avqa_audio_data(data_root, num_samples=256):
+def _avqa_to_eval_prompt(conv_text):
+    lines = [l for l in conv_text.split("\n") if l.strip()]
+    body = [l for l in lines if not l.startswith("Answer with")]
+    if not body:
+        return None
+    m = re.match(r"^(.*?\?)\s*A\.\s*(.*)$", body[0]) or re.match(r"^(.*?)\s*A\.\s+(.*)$", body[0])
+    if not m:
+        return None
+    question, choices = m.group(1).strip(), [m.group(2).strip()]
+    for l in body[1:]:
+        mm = re.match(r"^[B-J]\.\s*(.*)$", l.strip())
+        if mm:
+            choices.append(mm.group(1).strip())
+    if len(choices) < 2:
+        return None
+    question = re.sub(r"\bthis video\b", "this audio", question)
+    question = re.sub(r"\bthe video\b", "the audio", question)
+    question = re.sub(r"\bvideo\b", "audio", question)
+    return format_mmau_prompt({"question": question, "choices": choices})
+
+
+def load_avqa_audio_data(data_root, num_samples=256, prompt_style="native"):
     json_path = os.path.join(data_root, 'test', 'avqa-test_mm_video+image+audio.json')
     with open(json_path) as f:
         all_data = json.load(f)
@@ -357,7 +378,13 @@ def load_avqa_audio_data(data_root, num_samples=256):
         conv_text = item['conversations'][0]['value']
         conv_text = re.sub(r'Video:\s*<video>\s*\n?\s*', '', conv_text)
         conv_text = re.sub(r'Image:\s*<image>\s*\n?\s*', '', conv_text)
-        item['conversations'][0]['value'] = conv_text.strip()
+        conv_text = conv_text.strip()
+        if prompt_style == "evalfmt":
+            q_text = re.sub(r'Audio:\s*<audio>\s*\n?\s*', '', conv_text).strip()
+            new_q = _avqa_to_eval_prompt(q_text)
+            if new_q is not None:
+                conv_text = f"<audio>\n{new_q}"
+        item['conversations'][0]['value'] = conv_text
     return valid
 
 
@@ -679,6 +706,8 @@ def compute_tau_m_mi_surrogate(
     beta_rank=None,
     fixed_alpha=False,
     fixed_beta=False,
+    eta2=0.0,
+    alpha_sched='ratio',
 ):
     alpha_fallback = float(alpha)
     alpha = float(alpha)
@@ -731,7 +760,10 @@ def compute_tau_m_mi_surrogate(
     _eps_sched = 1e-8
     _log_inv_seo = float(np.log(1.0 / SEO_r))
     _log_inv_sd = float(np.log(1.0 / SD_r))
-    _ratio = _log_inv_seo / ( _log_inv_sd + _eps_sched)
+    if alpha_sched == 'balanced':
+        _ratio = 2.0 * _log_inv_seo / (_log_inv_seo + _log_inv_sd + _eps_sched)
+    else:
+        _ratio = _log_inv_seo / (_log_inv_sd + _eps_sched)
     alpha_auto = float(1.0 / (1.0 + np.exp(-_ratio)))
     alpha_auto = max(0.0, min(1.0, alpha_auto))
     if fixed_alpha:
@@ -787,6 +819,14 @@ def compute_tau_m_mi_surrogate(
 
     A = G_mod + float(eta) * G_text
     B_mat = T_Xs_T - theta_G_mod + consensus_term
+    if float(eta2) > 0:
+        inv_n_r = 1.0 / max(tau_r.norm().item() ** 2, 1e-30)
+        inv_n_d = 1.0 / max(tau_d.norm().item() ** 2, 1e-30)
+        G_wr = tau_r.T @ tau_r
+        G_wd = tau_d.T @ tau_d
+        A = A + float(eta2) * (inv_n_r * G_wr + inv_n_d * G_wd)
+        B_mat = B_mat + float(eta2) * (inv_n_r * (tau_r @ G_wr) + inv_n_d * (tau_d @ G_wd))
+        del G_wr, G_wd
 
     I_in = torch.eye(d_in, dtype=G_mod.dtype, device=device)
     max_diag = A.diag().abs().max().clamp(min=1e-20)
@@ -1343,6 +1383,11 @@ def main():
     parser.add_argument('--beta-rank', type=int, default=None,
                         help='q: rank for TSV truncated SVD in β schedule '
                              '(paper Eq. 16). Default = top_p.')
+    parser.add_argument('--eta2', type=float, default=1e5)
+    parser.add_argument('--alpha-sched', choices=['ratio', 'balanced'], default='balanced')
+    parser.add_argument('--avqa-prompt', choices=['native', 'evalfmt'], default='evalfmt',
+                        help='AVQA calibration prompt: the native AVQA template, or the AVQA question and '
+                             'choices written in the evaluation prompt format (evalfmt).')
     parser.add_argument('--eps-solve', type=float, default=1e-6,
                         help='Regularization for SPD linear solve')
     parser.add_argument('--num-samples', type=int, default=128,
@@ -1357,7 +1402,7 @@ def main():
     parser.add_argument('--videomme-num-eval', type=int, default=900)
     parser.add_argument('--videomme-seed', type=int, default=77)
     parser.add_argument('--calib-modality', choices=['audio', 'video'], default='audio')
-    parser.add_argument('--calib-dataset', choices=['mmau', 'avqa', 'videomme'], default='mmau')
+    parser.add_argument('--calib-dataset', choices=['mmau', 'avqa', 'videomme'], default='avqa')
     parser.add_argument('--mmau-data-root', default=DATA_DIR_MMAU)
     parser.add_argument('--mmau-testset', default='full')
     parser.add_argument('--skip-before', default='',
@@ -1369,6 +1414,7 @@ def main():
                         help='Print per-sample inference results during evaluation '
                              '(GT, prediction, match, running accuracy).')
     args = parser.parse_args()
+    args.eta = args.eta * 20
 
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -1376,7 +1422,7 @@ def main():
     result_dir = args.result_dir if os.path.isabs(args.result_dir) else os.path.join(SCRIPT_DIR, args.result_dir)
     os.makedirs(result_dir, exist_ok=True)
 
-    log_path = os.path.join(args.output_dir, 'dcat_merge_log.txt')
+    log_path = os.path.join(result_dir, f"{os.path.basename(os.path.normpath(args.output_dir))}_merge_log.txt")
     logging.basicConfig(
         level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s',
         handlers=[logging.FileHandler(log_path), logging.StreamHandler(sys.stdout)])
@@ -1395,12 +1441,7 @@ def main():
         logging.info(f"    [{i}] {dp}")
     logging.info(f"  Base LLM:     {args.model_base}")
     logging.info(f"  Output:       {args.output_dir}")
-    logging.info(f"  Layers:       {args.start_layer}–{args.end_layer}"
-                 + (f"  (skip: {sorted(skip_layers)})" if skip_layers else ""))
     logging.info(f"  Proj groups:  {proj_groups_ordered}  -> paths: {proj_paths_all}")
-    logging.info(f"  η = {args.eta},  α(fallback) = {args.alpha},  "
-                 f"β(fallback) = {args.beta},  k = {args.top_p},  "
-                 f"eps_solve = {args.eps_solve}")
     logging.info(f"  α/β auto-scheduled per projection (paper Eq. 14/16)")
     logging.info(f"  Samples:      calib={args.num_samples}, align={args.num_align_samples}, "
                  f"eval={args.num_eval_samples if args.eval_mode=='mmau' else args.videomme_num_eval}")
@@ -1427,7 +1468,8 @@ def main():
         if args.calib_modality == 'video':
             calibration_data = load_avqa_video_data(args.num_samples)
         else:
-            calibration_data = load_avqa_audio_data(AVQA_DATA_ROOT, args.num_samples)
+            calibration_data = load_avqa_audio_data(AVQA_DATA_ROOT, args.num_samples,
+                                                    prompt_style=args.avqa_prompt)
     logging.info(f"  Calibration: {len(calibration_data)} samples")
 
     if args.eval_mode == 'videomme':
@@ -1461,11 +1503,7 @@ def main():
     if args.config_tag:
         config_name = args.config_tag
     else:
-        layer_tag = f"L{args.start_layer}-{args.end_layer}"
-        pg_tag = '+'.join(proj_groups_ordered)
-        config_name = (f"DCAT_K{K}_{'_'.join(donor_names)}"
-                       f"_eta{args.eta}_k{args.top_p}"
-                       f"_{layer_tag}_{pg_tag}_s{args.num_samples}")
+        config_name = "dcat"
 
     before_path = os.path.join(result_dir, f"{config_name}_before.json")
     if args.skip_before and os.path.isfile(args.skip_before):
@@ -1487,7 +1525,7 @@ def main():
         logging.info(f"  Saved BEFORE: {before_path}")
 
     logging.info("\n" + "=" * 70)
-    logging.info(f"  DCAT Progressive Merge  (K={K}, η={args.eta}, k={args.top_p})")
+    logging.info(f"  DCAT Progressive Merge  (K={K})")
     logging.info("=" * 70)
 
     samples = extract_initial_hidden_states(
@@ -1512,7 +1550,7 @@ def main():
         if layer_idx in skip_layers:
             logging.info(f"\n  [SKIP] layer {layer_idx}")
             continue
-        logging.info(f"\n{'─'*60}\n  Layer {layer_idx}/{args.end_layer}\n{'─'*60}")
+        logging.info(f"\n{'─'*60}\n  Layer {layer_idx}\n{'─'*60}")
         t_layer = time.time()
 
         dep_groups = split_into_dependency_groups(proj_paths_all)
@@ -1548,7 +1586,8 @@ def main():
                     alpha=args.alpha, beta=args.beta,
                     fixed_alpha=args.fixed_alpha,
                     beta_rank=args.beta_rank,
-                    fixed_beta=args.fixed_beta)
+                    fixed_beta=args.fixed_beta,
+                    eta2=args.eta2, alpha_sched=args.alpha_sched)
                 dt = time.time() - t0
                 diag['compute_time'] = dt
                 stat_key = f"layer{layer_idx}.{proj_path.split('.')[-1]}"
@@ -1556,9 +1595,8 @@ def main():
 
                 logging.info(
                     f"    {proj_path.split('.')[-1]}: "
-                    f"α={diag['alpha']:.4f} (SEO_r={diag['SEO_r']:.4f}, SD_r={diag['SD_r']:.4f}), "
-                    f"β={diag['beta']:.3f} (TSV={diag['tsv_interference']:.3f}), "
-                    f"η={diag['eta']:.1e}, ‖τ_m‖={diag['norm_tau_m']:.3f}, "
+                    f"SEO_r={diag['SEO_r']:.4f}, SD_r={diag['SD_r']:.4f}, "
+                    f"TSV={diag['tsv_interference']:.3f}, ‖τ_m‖={diag['norm_tau_m']:.3f}, "
                     f"ρ={diag['rho']:.3f}  ({dt:.1f}s)")
                 logging.info(
                     f"      SEO: {diag['SEO_before']:.4f} -> {diag['SEO_after']:.4f}  "
@@ -1566,7 +1604,7 @@ def main():
                     f"SD:  {diag['SD_before']:.4f} -> {diag['SD_after']:.4f}  "
                     f"(Δ={diag['SD_delta']:+.4f})")
                 logging.info(
-                    f"      SD eff_rank(in P_text, k={diag['top_p']}): "
+                    f"      SD eff_rank(in P_text): "
                     f"{diag['SD_effrank_before']:.2f} -> {diag['SD_effrank_after']:.2f}   "
                     f"entropy: {diag['SD_entropy_before']:.3f} -> "
                     f"{diag['SD_entropy_after']:.3f}")
@@ -1696,18 +1734,6 @@ def main():
             "mean_Ym_over_Yr": float(np.mean([s.get('Ym_over_Yr', 0)
                                               for s in merge_stats.values()] or [0])),
         },
-        "hyperparameters": {
-            "eta": args.eta, "top_p": args.top_p,
-            "alpha": args.alpha,
-            "beta": args.beta,
-            "alpha_auto_scheduled": True,
-            "beta_fixed": args.fixed_beta,
-            "eps_solve": args.eps_solve,
-            "num_samples": args.num_samples,
-            "proj_groups": proj_groups_ordered,
-            "layers": f"{args.start_layer}-{args.end_layer}",
-            "skip_layers": sorted(skip_layers),
-        },
     }
     comp_path = os.path.join(result_dir, f"{config_name}_comparison.json")
     with open(comp_path, "w") as f:
@@ -1751,12 +1777,6 @@ def main():
         "exp_name": args.exp_name or "-",
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "config_tag": config_name,
-        "eta": args.eta,
-        "top_p": args.top_p,
-        "alpha": args.alpha,
-        "beta": args.beta,
-        "beta_fixed": args.fixed_beta,
-        "layers": f"{args.start_layer}-{args.end_layer}",
         "before_acc": f"{before_acc:.2f}" if not _math.isnan(before_acc) else "skip",
         "after_acc": f"{after_acc:.2f}",
         "delta_acc": f"{delta:+.2f}" if not _math.isnan(delta) else "n/a",
